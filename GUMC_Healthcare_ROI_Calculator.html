@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GUMC Healthcare CEP — ROI Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #F7FAFA;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .page { max-width: 900px; margin: 0 auto; }
+
+  .header {
+    background: #0F6E56;
+    border-radius: 14px;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.3;
+  }
+  .header-left p {
+    font-size: 14px;
+    color: #9FE1CB;
+    margin-top: 6px;
+  }
+  .header-badge {
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 10px 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .header-badge .badge-num { font-size: 28px; font-weight: 600; color: #fff; }
+  .header-badge .badge-lbl { font-size: 11px; color: #9FE1CB; margin-top: 2px; }
+
+  .card {
+    background: #fff;
+    border: 0.5px solid #e0e0e0;
+    border-radius: 14px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #999;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2.5rem; }
+  @media (max-width: 620px) { .input-grid { grid-template-columns: 1fr; } }
+
+  .ctrl { margin-bottom: 18px; }
+  .ctrl-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .ctrl-top label { font-size: 13px; color: #444; }
+  .ctrl-top .val { font-size: 13px; font-weight: 600; color: #0F6E56; }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #e0e0e0;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #1D9E75;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #1D9E75;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #1D9E75;
+    cursor: pointer;
+    border: 2px solid #fff;
+  }
+  select {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+    color: #1a1a1a;
+    padding: 0 10px;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+  }
+  select:focus { border-color: #1D9E75; box-shadow: 0 0 0 2px rgba(29,158,117,0.15); }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  @media (max-width: 620px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
+  .metric { background: #F7FAFA; border-radius: 10px; padding: 14px 16px; }
+  .metric .lbl { font-size: 11px; color: #888; margin-bottom: 5px; }
+  .metric .num { font-size: 22px; font-weight: 600; color: #1a1a1a; }
+  .metric .sub { font-size: 11px; color: #aaa; margin-top: 3px; }
+  .metric.green .num { color: #0F6E56; }
+  .metric.highlight { background: #E1F5EE; }
+  .metric.highlight .num { color: #085041; }
+
+  .payback-wrap {
+    background: #F7FAFA;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 1.5rem;
+  }
+  .payback-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .payback-top span { font-size: 13px; color: #444; }
+  .payback-top strong { font-size: 13px; color: #0F6E56; }
+  .bar-track { height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 5px; background: #1D9E75; transition: width 0.35s ease; }
+  .bar-labels { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-top: 5px; }
+
+  .divider { height: 0.5px; background: #eee; margin: 1.5rem 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    font-size: 11px;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+  }
+  thead th:not(:first-child) { text-align: right; }
+  tbody td { padding: 10px 10px; border-bottom: 0.5px solid #f0f0f0; color: #1a1a1a; vertical-align: middle; }
+  tbody td.r { text-align: right; font-weight: 500; }
+  tbody td.saving { text-align: right; font-weight: 600; color: #0F6E56; }
+  tbody td.cost { text-align: right; font-weight: 600; color: #993C1D; }
+  tbody tr.total td { font-weight: 600; background: #F7FAFA; border-top: 1px solid #ddd; border-bottom: none; }
+  tbody tr.total td.saving { color: #085041; }
+
+  .callout {
+    border-left: 3px solid #1D9E75;
+    background: #E1F5EE;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: #085041;
+    line-height: 1.65;
+    margin-bottom: 1.5rem;
+  }
+
+  .chart-wrap { position: relative; width: 100%; height: 260px; }
+
+  .legend { display: flex; gap: 20px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  .footer {
+    text-align: center;
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 1.5rem;
+    padding-bottom: 1rem;
+    line-height: 1.7;
+  }
+
+  .print-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #1D9E75;
+    color: #0F6E56;
+    background: #fff;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background 0.15s;
+  }
+  .print-btn:hover { background: #E1F5EE; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .card { border: 1px solid #ddd; box-shadow: none; page-break-inside: avoid; }
+    .print-btn { display: none; }
+    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bar-fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>Google Unified Management Console<br>Healthcare CEP — ROI Calculator</h1>
+      <p>Estimate the savings vs. a traditional consulting engagement</p>
+    </div>
+    <div class="header-badge">
+      <div class="badge-num" id="hdr-roi">—</div>
+      <div class="badge-lbl">Year 1 ROI</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-label">Organization profile</p>
+    <div class="input-grid">
+      <div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label>Clinical users</label><span class="val" id="users-out">1,500</span></div>
+          <input type="range" id="users" min="200" max="10000" step="100" value="1500">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label>Applications to migrate</label><span class="val" id="apps-out">200</span></div>
+          <input type="range" id="apps" min="20" max="800" step="10" value="200">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label>Imprivata already deployed?</label><span class="val" id="imp-out"></span></div>
+          <select id="imprivata">
+            <option value="1">Yes — Imprivata EAM deployed</option>
+            <option value="0">No — starting fresh</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label>GUMC platform cost (annual)</label><span class="val" id="platform-out">$75,000</span></div>
+          <input type="range" id="platform" min="20000" max="300000" step="5000" value="75000">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label>Internal IT hourly rate</label><span class="val" id="itrate-out">$95/hr</span></div>
+          <input type="range" id="itrate" min="50" max="200" step="5" value="95">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label>Post-deployment support retainer</label><span class="val" id="ret-out"></span></div>
+          <select id="retainer">
+            <option value="1">Yes — currently budgeted ($15K/mo)</option>
+            <option value="0">No — not currently in budget</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-label">ROI summary</p>
+    <div class="metric-grid">
+      <div class="metric highlight">
+        <div class="lbl">Total savings (year 1)</div>
+        <div class="num" id="m-savings">$0</div>
+        <div class="sub">vs. consulting path</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Consulting cost avoided</div>
+        <div class="num" id="m-consult">$0</div>
+        <div class="sub">one-time engagement</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Time to deployment</div>
+        <div class="num" id="m-weeks">0 wks</div>
+        <div class="sub" id="m-weeks-sub">vs. 12 wks consulting</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Payback period</div>
+        <div class="num" id="m-payback">0 mo</div>
+        <div class="sub">platform vs. consulting</div>
+      </div>
+    </div>
+
+    <div class="payback-wrap">
+      <div class="payback-top">
+        <span>Cumulative year-1 value delivered</span>
+        <strong id="roi-label">0% ROI</strong>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="roi-bar" style="width:0%"></div></div>
+      <div class="bar-labels"><span>$0</span><span id="bar-max">$500K</span></div>
+    </div>
+
+    <div class="callout" id="callout"></div>
+  </div>
+
+  <div class="card">
+    <p class="section-label">Cost breakdown — year 1</p>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:46%">Item</th>
+          <th>Without GUMC</th>
+          <th>With GUMC</th>
+          <th>Savings</th>
+        </tr>
+      </thead>
+      <tbody id="breakdown"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <p class="section-label">3-year total cost of ownership</p>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#B4B2A9"></div>Consulting path</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#1D9E75"></div>GUMC platform</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;">
+    <button class="print-btn" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6V1h8v5M4 12H2a1 1 0 01-1-1V7a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1h-2M4 9h8v6H4V9z" stroke="#0F6E56" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Print / Save as PDF
+    </button>
+  </div>
+
+  <div class="footer">
+    Google Unified Management Console &nbsp;|&nbsp; Healthcare CEP ROI Calculator &nbsp;|&nbsp; Confidential<br>
+    Estimates based on industry benchmarks for healthcare CEP deployments. Actual results will vary by organization size, complexity, and existing infrastructure.
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+  const fmt  = n => '$' + Math.round(n).toLocaleString();
+  const fmtK = n => n >= 1000000 ? '$' + (n/1000000).toFixed(1)+'M' : '$' + Math.round(n/1000)+'K';
+
+  let chart = null;
+
+  function calc() {
+    const users    = +document.getElementById('users').value;
+    const apps     = +document.getElementById('apps').value;
+    const platform = +document.getElementById('platform').value;
+    const itrate   = +document.getElementById('itrate').value;
+    const hasImp   = +document.getElementById('imprivata').value;
+    const hasRet   = +document.getElementById('retainer').value;
+
+    document.getElementById('users-out').textContent    = users.toLocaleString();
+    document.getElementById('apps-out').textContent     = apps.toLocaleString();
+    document.getElementById('platform-out').textContent = fmt(platform);
+    document.getElementById('itrate-out').textContent   = '$' + itrate + '/hr';
+
+    const baseConsult    = 120000 + (users * 80) + (apps * 180);
+    const cappedConsult  = Math.min(Math.max(baseConsult, 180000), 650000);
+    const consultingCost = Math.round(cappedConsult * (hasImp ? 0.75 : 1.0));
+    const retainerCost   = hasRet ? 15000 * 12 : 0;
+    const internalHours  = hasImp ? 80 : 240;
+    const internalCost   = internalHours * itrate;
+
+    const weeksWithout  = hasImp ? 10 : 14;
+    const weeksWithGUMC = hasImp ? 2  : 4;
+    const weeksSaved    = weeksWithout - weeksWithGUMC;
+
+    const gumcInternal  = 20 * itrate;
+    const withoutTotal  = consultingCost + retainerCost + internalCost;
+    const withTotal     = platform + gumcInternal;
+    const savings       = withoutTotal - withTotal;
+    const roi           = Math.round((savings / withTotal) * 100);
+    const payback       = withTotal > 0 ? Math.max(1, Math.round(withTotal / (savings / 12))) : 0;
+
+    document.getElementById('hdr-roi').textContent       = roi + '%';
+    document.getElementById('m-savings').textContent     = fmt(savings);
+    document.getElementById('m-consult').textContent     = fmt(consultingCost);
+    document.getElementById('m-weeks').textContent       = weeksWithGUMC + ' wks';
+    document.getElementById('m-weeks-sub').textContent   = 'vs. ' + weeksWithout + ' wks consulting';
+    document.getElementById('m-payback').textContent     = Math.min(payback, 24) + ' mo';
+    document.getElementById('roi-label').textContent     = roi + '% ROI';
+
+    const barMax = Math.max(withoutTotal, withTotal) * 1.1;
+    document.getElementById('roi-bar').style.width  = Math.min(100, Math.round((savings / barMax) * 100)) + '%';
+    document.getElementById('bar-max').textContent  = fmtK(barMax);
+
+    const rows = [
+      { label: 'Consulting engagement (one-time)', without: consultingCost, with_: 0 },
+      { label: 'Post-deployment support retainer (annual)', without: retainerCost, with_: 0 },
+      { label: 'Internal IT deployment hours', without: internalCost, with_: gumcInternal },
+      { label: 'GUMC platform license (annual)', without: 0, with_: platform },
+    ];
+
+    const tbody = document.getElementById('breakdown');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const diff = r.without - r.with_;
+      const isNeg = diff < 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.label}</td>
+        <td class="r">${r.without > 0 ? fmt(r.without) : '—'}</td>
+        <td class="r">${r.with_ > 0 ? fmt(r.with_) : '—'}</td>
+        <td class="${isNeg ? 'cost' : 'saving'}">${isNeg ? '-' + fmt(Math.abs(diff)) : fmt(diff)}</td>`;
+      tbody.appendChild(tr);
+    });
+    const tot = document.createElement('tr');
+    tot.className = 'total';
+    tot.innerHTML = `<td>Total (year 1)</td>
+      <td class="r">${fmt(withoutTotal)}</td>
+      <td class="r">${fmt(withTotal)}</td>
+      <td class="saving">${fmt(savings)}</td>`;
+    tbody.appendChild(tot);
+
+    const impNote = hasImp
+      ? 'With Imprivata EAM already deployed, the GUMC app audit connector eliminates the most expensive discovery phase — reducing the consulting scope by ~25% and internal IT effort by ~65%.'
+      : 'Without Imprivata, app discovery and classification is fully manual. GUMC compresses a ' + weeksWithout + '-week engagement to approximately ' + weeksWithGUMC + ' weeks of guided internal effort.';
+    document.getElementById('callout').textContent =
+      impNote + ' At ' + users.toLocaleString() + ' users and ' + apps + ' apps, your estimated year-1 ROI is ' + roi + '%, with a payback period of approximately ' + Math.min(payback, 24) + ' months.';
+
+    const yr1W = withoutTotal, yr2W = retainerCost + internalCost * 0.3, yr3W = retainerCost + internalCost * 0.3;
+    const yr1G = withTotal,    yr2G = platform * 0.9 + gumcInternal * 0.2, yr3G = platform * 0.85 + gumcInternal * 0.1;
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById('chart'), {
+      type: 'bar',
+      data: {
+        labels: ['Year 1', 'Year 2', 'Year 3'],
+        datasets: [
+          { label: 'Consulting path', data: [Math.round(yr1W), Math.round(yr2W), Math.round(yr3W)], backgroundColor: '#B4B2A9' },
+          { label: 'GUMC platform',   data: [Math.round(yr1G), Math.round(yr2G), Math.round(yr3G)], backgroundColor: '#1D9E75' },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.raw) }
+        }},
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#888' } },
+          y: { ticks: { color: '#888', callback: v => fmtK(v) }, grid: { color: 'rgba(0,0,0,0.06)' } }
+        }
+      }
+    });
+  }
+
+  ['users','apps','platform','itrate','imprivata','retainer'].forEach(id => {
+    document.getElementById(id).addEventListener('input', calc);
+    document.getElementById(id).addEventListener('change', calc);
+  });
+  calc();
+</script>
+</body>
+</html>
